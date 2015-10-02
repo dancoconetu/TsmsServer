@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Tsms1:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Tsms1_jar</output-path>
+    <root id="archive" name="Tsms1.jar">
+      <element id="module-output" name="Tsms1" />
+    </root>
+  </artifact>
+</component>
