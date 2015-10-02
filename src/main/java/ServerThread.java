@@ -6,8 +6,8 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 
-public class ChatServerThread extends Thread
-{  private ChatServer       server    = null;
+public class ServerThread extends Thread
+{  private Server server    = null;
     private Socket           socket    = null;
     private int              ID        = -1;
     private DataInputStream  streamIn  =  null;
@@ -18,7 +18,7 @@ public class ChatServerThread extends Thread
     private int imageCounter= 1;
     public  int FILE_SIZE = 53291009;
     public int repeted= 0;
-    public ChatServerThread(ChatServer _server, Socket _socket)
+    public ServerThread(Server _server, Socket _socket)
     {  super();
         server = _server;
         socket = _socket;
@@ -86,8 +86,7 @@ public class ChatServerThread extends Thread
 
     public void receiveFile()
     {
-        int bytesRead;
-        int current = 0;
+
         try {
             sleep(500);
         } catch (InterruptedException e) {
@@ -101,13 +100,13 @@ public class ChatServerThread extends Thread
                 fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
                 bos = new BufferedOutputStream(fos);
                 int sizeReceived = 0;
-                int count = 8192;
-                byte[] buffer = new byte[count];
-                while(sizeReceived<FILE_SIZE && (count = is.read(buffer, 0, 8192))>0)
+                int bytesRead = 8192;
+                byte[] buffer = new byte[bytesRead];
+                while(sizeReceived<FILE_SIZE && (bytesRead = is.read(buffer, 0, 8192))>0)
                 {
-                    sizeReceived += count;
-                    System.out.println(sizeReceived + " Available: " + is.available() + "Count: " + count);
-                    bos.write(buffer, 0, count);
+                    sizeReceived += bytesRead;
+                    System.out.println(sizeReceived + " Available: " + is.available() + "Count: " + bytesRead);
+                    bos.write(buffer, 0, bytesRead);
                     bos.flush();
                 }
                 System.out.println("File " + IMAGE_TO_BE_RECEIVED

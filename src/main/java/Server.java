@@ -2,19 +2,22 @@
  * Created by dic on 18-09-2015.
  */
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class ChatServer implements Runnable
-{  private ChatServerThread clients[] = new ChatServerThread[50];
+public class Server implements Runnable
+{  private ServerThread clients[] = new ServerThread[50];
     private ServerSocket server = null;
     private Thread       thread = null;
     private int clientCount = 0;
     private DataInputStream  console   = null;
 
 
-    public ChatServer(int port)
+    public Server(int port)
     {  try
     {  System.out.println("Binding to port " + port + ", please wait  ...");
         server = new ServerSocket(port);
@@ -99,7 +102,7 @@ public class ChatServer implements Runnable
     public synchronized void remove(int ID)
     {  int pos = findClient(ID);
         if (pos >= 0)
-        {  ChatServerThread toTerminate = clients[pos];
+        {  ServerThread toTerminate = clients[pos];
             System.out.println("Removing client thread " + ID + " at " + pos);
             if (pos < clientCount-1)
                 for (int i = pos+1; i < clientCount; i++)
@@ -115,7 +118,7 @@ public class ChatServer implements Runnable
     {  if (clientCount < clients.length)
     {  System.out.println("Client accepted: " + socket + " ip:" + socket.getInetAddress());
 
-        clients[clientCount] = new ChatServerThread(this, socket);
+        clients[clientCount] = new ServerThread(this, socket);
         clients[clientCount].setIp(socket.getInetAddress());
         try
         {  clients[clientCount].open();
@@ -136,10 +139,10 @@ public class ChatServer implements Runnable
 
 
     public static void main(String args[])
-    {  ChatServer server = null;
+    {  Server server = null;
        // if (args.length != 1)
-        //    System.out.println("Usage: java ChatServer port");
+        //    System.out.println("Usage: java Server port");
        // else
-            server = new ChatServer(7777);
+            server = new Server(7777);
     }
 }
