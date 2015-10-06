@@ -16,7 +16,7 @@ public class ServerThread extends Thread
     private String FILE_TO_BE_RECEIVED = "C:\\Users\\dic\\sent\\file.mp3";
     private String PATH = "C:\\Users\\dic\\sent\\";
     private int imageCounter= 1;
-    public  int FILE_SIZE = 53291009;
+    public  long FILE_SIZE = 53291009;
     public int repeted= 0;
     public ServerThread(Server _server, Socket _socket)
     {  super();
@@ -25,27 +25,34 @@ public class ServerThread extends Thread
         ID     = socket.getPort();
     }
     public void send(String msg)
-    {   try
-    {  streamOut.writeUTF(msg);
+    {
+        try
 
-    }
-    catch(IOException ioe)
-    {  System.out.println(ID + " ERROR sending: " + ioe.getMessage());
-        server.remove(ID);
-        stop();
-    }
+        {
+            streamOut.writeUTF(msg);
+        }
+        catch(IOException ioe)
+        {
+            System.out.println(ID + " ERROR sending: " + ioe.getMessage());
+            server.remove(ID);
+            stop();
+        }
         finally
         {
-            try {
+            try
+            {
                 streamOut.flush();
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 e.printStackTrace();
             }
         }
     }
 
     public int getID()
-    {  return ID;
+    {
+        return ID;
     }
 
     public void setIp(InetAddress ip)
@@ -59,83 +66,97 @@ public class ServerThread extends Thread
     }
 
     public void run()
-    {  System.out.println("Server Thread " + ID + " running.");
+    {
+        System.out.println("Server Thread " + ID + " running.");
         while (true)
-        {  try
-        {  server.handle(ID, streamIn.readUTF());
+        {
+            try
+            {
+            server.handle(ID, streamIn.readUTF());
+            }
+            catch(IOException ioe)
+            {
+                System.out.println(ID + " ERROR reading: " + ioe.getMessage());
+                server.remove(ID);
+                stop();
+            }
+        }
+    }
 
-        }
-        catch(IOException ioe)
-        {  System.out.println(ID + " ERROR reading: " + ioe.getMessage());
-            server.remove(ID);
-            stop();
-        }
-        }
-    }
     public void open() throws IOException
-    {  streamIn = new DataInputStream(new
-            BufferedInputStream(socket.getInputStream()));
-        streamOut = new DataOutputStream(new
-                BufferedOutputStream(socket.getOutputStream()));
+    {
+        streamIn = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+        streamOut = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
     }
+
     public void close() throws IOException
-    {  if (socket != null)    socket.close();
+    {   if (socket != null)    socket.close();
         if (streamIn != null)  streamIn.close();
         if (streamOut != null) streamOut.close();
     }
 
     public void receiveFile()
-    {
-
-        try {
+    {   server.inUse = true;
+        try
+        {
             sleep(500);
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e)
+        {
             e.printStackTrace();
         }
         FileOutputStream fos = null;
         BufferedOutputStream bos = null;
-        try {
-                InputStream is = socket.getInputStream();
-                String IMAGE_TO_BE_RECEIVED = PATH + "file " + imageCounter++ + "-"+ getID() +  ".IIQ";
-                fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
-                bos = new BufferedOutputStream(fos);
-                int sizeReceived = 0;
-                int bytesRead = 8192;
-                byte[] buffer = new byte[bytesRead];
-                while(sizeReceived<FILE_SIZE && (bytesRead = is.read(buffer, 0, 8192))>0)
+        try
+        {   send("Go");
+            long startTime = System.currentTimeMillis();
+            BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
+            DataInputStream dis = new DataInputStream(bis);
+            String IMAGE_TO_BE_RECEIVED = PATH + "file " + imageCounter++ + "-"+ getID() +  ".IIQ";
+            fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
+            bos = new BufferedOutputStream(fos);
+            long fileSize = dis.readLong();
+            System.out.println("File size: " + fileSize);
+            int sizeReceived = 0;
+            int bytesRead = 8192;
+            byte[] buffer = new byte[bytesRead];
+            while(sizeReceived<fileSize && (bytesRead = bis.read(buffer, 0, 8192))>0)
                 {
                     sizeReceived += bytesRead;
-                    System.out.println(sizeReceived + " Available: " + is.available() + "Count: " + bytesRead);
+                    System.out.println(sizeReceived + " Available: " + bis.available() + "Count: " + bytesRead);
                     bos.write(buffer, 0, bytesRead);
                     bos.flush();
                 }
-                System.out.println("File " + IMAGE_TO_BE_RECEIVED
-                        + " downloaded (" + sizeReceived + " bytes read)" + " repeted:  " + repeted);
-
-
-            if (imageCounter==999) {
+            long estimatedTime = System.currentTimeMillis() - startTime;
+            System.out.println("File " + IMAGE_TO_BE_RECEIVED + " downloaded (" + sizeReceived + " bytes read)"
+                                        + " repeated:  " + repeted + " Time Elapsed: " + estimatedTime/1000.0 );
+            if (imageCounter==99)
+            {
                 imageCounter = 0;
                 repeted++;
             }
-                if (imageCounter<1000)
+            if (imageCounter<100)
             {
                 send("server:" + "send");
             }
-
-
         }
         catch (Exception e)
         {
             e.printStackTrace();
         }
-        finally {
-            try {
+        finally
+        {
+            try
+            {
                 if (bos != null) bos.close();
                 if (fos != null) fos.close();
 
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 e.printStackTrace();
             }
         }
+        server.inUse = false;
     }
 }

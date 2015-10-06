@@ -2,12 +2,16 @@
  * Created by dic on 18-09-2015.
  */
 
+import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
+
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class Server implements Runnable
 {  private ServerThread clients[] = new ServerThread[50];
@@ -15,7 +19,9 @@ public class Server implements Runnable
     private Thread       thread = null;
     private int clientCount = 0;
     private DataInputStream  console   = null;
-
+    public boolean inUse= false;
+    private Queue<String> queue = new LinkedList<String>();
+    private Mutex mutex = new Mutex();
 
     public Server(int port)
     {  try
@@ -81,7 +87,10 @@ public class Server implements Runnable
         return -1;
     }
     public synchronized void handle(int ID, String input)
-    {  if (input.equals(".bye"))
+    {   System.out.println("Input: " + input);
+        String s = ID + "";
+        queue.add(s);
+        if (input.equals(".bye"))
     {  clients[findClient(ID)].send(".bye");
         remove(ID); }
     //else
@@ -92,11 +101,21 @@ public class Server implements Runnable
         //}
 
            // System.out.println("Ip:" + clients[findClient(ID)].getIp() + " Thread:" +  ID + ">> " + input);
-        if (input.length()>10)
+        if (input.length()>=10)
         if(input.substring(0,10).equals("Sending..."))
-        {   clients[findClient(ID)].FILE_SIZE= Integer.parseInt(input.substring(10));
-            System.out.println(clients[findClient(ID)].FILE_SIZE);
-            clients[findClient(ID)].receiveFile();
+        {
+
+            System.out.println("Trying to receive");
+            try {
+                mutex.acquire();
+                clients[findClient(ID)].receiveFile();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            finally {
+                mutex.release();
+            }
+
         }
     }
     public synchronized void remove(int ID)
