@@ -110,9 +110,11 @@ public class ServerThread extends Thread
         try
         {   send("Go");
             long startTime = System.currentTimeMillis();
+
             BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
             DataInputStream dis = new DataInputStream(bis);
-            String IMAGE_TO_BE_RECEIVED = PATH + "file " + imageCounter++ + "-"+ getID() +  ".IIQ";
+            String imageName = dis.readUTF();
+            String IMAGE_TO_BE_RECEIVED = PATH + imageName ;
             fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
             bos = new BufferedOutputStream(fos);
             long fileSize = dis.readLong();
@@ -130,7 +132,9 @@ public class ServerThread extends Thread
             long estimatedTime = System.currentTimeMillis() - startTime;
             System.out.println("File " + IMAGE_TO_BE_RECEIVED + " downloaded (" + sizeReceived + " bytes read)"
                                         + " repeated:  " + repeted + " Time Elapsed: " + estimatedTime/1000.0 );
-            if (imageCounter==99)
+            if (fileSize != sizeReceived )
+            System.out.println("malicious file sent");
+            /*if (imageCounter==99)
             {
                 imageCounter = 0;
                 repeted++;
@@ -138,7 +142,7 @@ public class ServerThread extends Thread
             if (imageCounter<100)
             {
                 send("server:" + "send");
-            }
+            }*/
         }
         catch (Exception e)
         {
