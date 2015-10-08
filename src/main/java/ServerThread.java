@@ -13,10 +13,7 @@ public class ServerThread extends Thread
     private DataInputStream  streamIn  =  null;
     private DataOutputStream streamOut = null;
     private InetAddress           ip;
-    private String FILE_TO_BE_RECEIVED = "C:\\Users\\dic\\sent\\file.mp3";
     private String PATH = "C:\\Users\\dic\\sent\\";
-    private int imageCounter= 1;
-    public  long FILE_SIZE = 53291009;
     public int repeted= 0;
     public ServerThread(Server _server, Socket _socket)
     {  super();
