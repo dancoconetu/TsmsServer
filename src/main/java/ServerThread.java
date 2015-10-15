@@ -107,10 +107,15 @@ public class ServerThread extends Thread
         try
         {   send("Go");
             long startTime = System.currentTimeMillis();
-
             BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
             DataInputStream dis = new DataInputStream(bis);
             String imageName = dis.readUTF();
+            String imageFound = dis.readUTF();
+            System.out.println(imageFound);
+            if (!imageFound.equals("ImageFound") || imageFound.equals("ImageNotFound")  )
+            {
+                throw new Exception();
+            }
             String IMAGE_TO_BE_RECEIVED = PATH + imageName ;
             fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
             bos = new BufferedOutputStream(fos);
@@ -122,13 +127,13 @@ public class ServerThread extends Thread
             while(sizeReceived<fileSize && (bytesRead = bis.read(buffer, 0, 8192))>0)
                 {
                     sizeReceived += bytesRead;
-                    System.out.println(sizeReceived + " Available: " + bis.available() + "Count: " + bytesRead);
+                    //System.out.println(sizeReceived + " Available: " + bis.available() + "Count: " + bytesRead);
                     bos.write(buffer, 0, bytesRead);
                     bos.flush();
                 }
             long estimatedTime = System.currentTimeMillis() - startTime;
             System.out.println("File " + IMAGE_TO_BE_RECEIVED + " downloaded (" + sizeReceived + " bytes read)"
-                                        + " repeated:  " + repeted + " Time Elapsed: " + estimatedTime/1000.0 );
+                                       + " repeated:  " + repeted + " Time Elapsed: " + estimatedTime/1000.0 );
             if (fileSize != sizeReceived )
             System.out.println("malicious file sent");
             /*if (imageCounter==99)
