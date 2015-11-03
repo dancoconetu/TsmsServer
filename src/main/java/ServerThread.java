@@ -15,6 +15,7 @@ public class ServerThread extends Thread
     private InetAddress           ip;
     private String PATH = "C:\\Users\\dic\\sent\\";
     public int repeted= 0;
+    private byte[] mybytearray;
     public ServerThread(Server _server, Socket _socket)
     {  super();
         server = _server;
@@ -164,5 +165,92 @@ public class ServerThread extends Thread
             }
         }
         server.inUse = false;
+    }
+
+
+    public void sendFile(String file) {
+        FileInputStream fis = null;
+        BufferedInputStream bis = null;
+        //OutputStream os = null;
+        BufferedOutputStream bos = null;
+        DataOutputStream dos;
+        String imagePath = PATH  + file;
+        //send("sendToClient");
+        try
+        {
+            bos = new BufferedOutputStream(socket.getOutputStream());
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        dos = new DataOutputStream(bos);
+        sleepTime();
+
+        try
+        {
+            DataInputStream streamIn  = new DataInputStream(socket.getInputStream());
+            System.out.println("waiting for Goooooooooooooooooooooooooooo");
+           // while (!streamIn.readUTF().equals("Go")){}
+            System.out.println("It shoiuld gooooo");
+                    send(file);
+            File myFile = new File(imagePath);
+
+            mybytearray = new byte[(int) myFile.length()];
+
+            fis = new FileInputStream(myFile);
+
+
+            bis = new BufferedInputStream(fis);
+            bis.read(mybytearray, 0, mybytearray.length);
+            send("ImageFound");
+            long fileLength = myFile.length();
+            dos.writeLong(fileLength);
+
+            System.out.println("Sending " + imagePath + "(" + mybytearray.length + " bytes)");
+            bos.write(mybytearray, 0, mybytearray.length);
+            bos.flush();
+            System.out.println("Done.");
+
+
+        }
+        catch (FileNotFoundException e)
+        {
+            e.printStackTrace();
+            System.out.println("File not found!");
+            send("ImageNotFound");
+
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        finally
+        {
+            System.out.println("sent");
+            sleepTime();
+
+            //sendMessage("succesfully sent");
+//             try {
+//                 if (bis != null) bis.close();
+//
+//
+//             } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+
+        }
+    }
+
+    public void sleepTime()
+    {
+        try
+        {
+            sleep(100);
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
     }
 }

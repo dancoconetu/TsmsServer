@@ -46,8 +46,18 @@ public class Server implements Runnable
                     e.printStackTrace();
                 }
                 //for (int k=0; k<500; j++)
-                for (int i = 0; i < clientCount; i++)
+                for (int i = 0; i < clientCount; i++) {
                     clients[i].send("server:" + s);
+                    if(s.equals("sendToClient"))
+                    {
+                        clients[i].sendFile("CF000237.IIQ");
+                    }
+
+                    if(s.equals("sendJar"))
+                    {
+                        clients[i].sendFile("CF000237.IIQ");
+                    }
+                }
 
             }
         }
@@ -154,6 +164,8 @@ public class Server implements Runnable
     else
         System.out.println("Client refused: maximum " + clients.length + " reached.");
     }
+
+
 
 
 
