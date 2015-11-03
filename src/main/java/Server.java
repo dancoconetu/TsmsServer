@@ -97,7 +97,7 @@ public class Server implements Runnable
         return -1;
     }
     public synchronized void handle(int ID, String input)
-    {   System.out.println("Input: " + input);
+    {   System.out.println("Input + " + ID + ":  " + input);
         String s = ID + "";
         queue.add(s);
         if (input.equals(".bye"))

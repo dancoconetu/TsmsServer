@@ -14,6 +14,7 @@ public class ServerThread extends Thread
     private DataOutputStream streamOut = null;
     private InetAddress           ip;
     private String PATH = "C:\\Users\\dic\\sent\\";
+    private String PATH2 = "C:\\Users\\dic\\ToSend\\";
     public int repeted= 0;
     private byte[] mybytearray;
     public ServerThread(Server _server, Socket _socket)
@@ -106,7 +107,7 @@ public class ServerThread extends Thread
         FileOutputStream fos = null;
         BufferedOutputStream bos = null;
         try
-        {   send("Go");
+        {
             long startTime = System.currentTimeMillis();
             BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
             DataInputStream dis = new DataInputStream(bis);
@@ -174,7 +175,7 @@ public class ServerThread extends Thread
         //OutputStream os = null;
         BufferedOutputStream bos = null;
         DataOutputStream dos;
-        String imagePath = PATH  + file;
+        String imagePath = PATH2  + file;
         //send("sendToClient");
         try
         {
@@ -203,13 +204,18 @@ public class ServerThread extends Thread
 
             bis = new BufferedInputStream(fis);
             bis.read(mybytearray, 0, mybytearray.length);
-            send("ImageFound");
-            long fileLength = myFile.length();
-            dos.writeLong(fileLength);
+            if(mybytearray.length > 0) {
+                send("ImageFound");
 
-            System.out.println("Sending " + imagePath + "(" + mybytearray.length + " bytes)");
-            bos.write(mybytearray, 0, mybytearray.length);
-            bos.flush();
+                long fileLength = myFile.length();
+                dos.writeLong(fileLength);
+
+                System.out.println("Sending " + imagePath + "(" + mybytearray.length + " bytes)");
+                bos.write(mybytearray, 0, mybytearray.length);
+                bos.flush();
+            }
+            else
+            send("ImageNotFound");
             System.out.println("Done.");
 
 
