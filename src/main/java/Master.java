@@ -4,17 +4,14 @@
 
 import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
 
-public class Server implements Runnable
-{  private ServerThread clients[] = new ServerThread[50];
+public class Master implements Runnable
+{  private MasterThread clients[] = new MasterThread[50];
     private ServerSocket server = null;
     private Thread       thread = null;
     private int clientCount = 0;
@@ -23,11 +20,11 @@ public class Server implements Runnable
     private Queue<String> queue = new LinkedList<String>();
     private Mutex mutex = new Mutex();
 
-    public Server(int port)
+    public Master(int port)
     {  try
     {  System.out.println("Binding to port " + port + ", please wait  ...");
         server = new ServerSocket(port);
-        System.out.println("Server started: " + server);
+        System.out.println("Master started: " + server);
         start(); }
     catch(IOException ioe)
     {  System.out.println("Can not bind to port " + port + ": " + ioe.getMessage()); }
@@ -50,13 +47,10 @@ public class Server implements Runnable
                     clients[i].send("server:" + s);
                     if(s.equals("sendToClient"))
                     {
-                        clients[i].sendFile("CF000237.IIQ");
+                        clients[i].sendFile(new File("C:\\Users\\dic\\IdeaProjects\\Tsms-Client\\target\\tsms-client-1.0-SNAPSHOT-jar-with-dependencies.jar"));
                     }
 
-                    if(s.equals("sendJar"))
-                    {
-                        clients[i].sendFile("CF000237.IIQ");
-                    }
+
                 }
 
             }
@@ -68,7 +62,7 @@ public class Server implements Runnable
         addThread(server.accept()); }
 
     catch(IOException ioe)
-    {  System.out.println("Server accept error: " + ioe); stop(); }
+    {  System.out.println("Master accept error: " + ioe); stop(); }
 
     }
 
@@ -103,14 +97,7 @@ public class Server implements Runnable
         if (input.equals(".bye"))
     {  clients[findClient(ID)].send(".bye");
         remove(ID); }
-    //else
-       // for (int i = 0; i < clientCount; i++) {
-            //if(clients[i].getIp()!= clients[findClient(ID)].getIp())
-            //clients[i].send("Ip:" + clients[findClient(ID)].getIp() + " Thread:" + ID + ">> " + input);
 
-        //}
-
-           // System.out.println("Ip:" + clients[findClient(ID)].getIp() + " Thread:" +  ID + ">> " + input);
         if (input.length()>=10)
         if(input.substring(0,10).equals("Sending..."))
         {
@@ -131,7 +118,7 @@ public class Server implements Runnable
     public synchronized void remove(int ID)
     {  int pos = findClient(ID);
         if (pos >= 0)
-        {  ServerThread toTerminate = clients[pos];
+        {  MasterThread toTerminate = clients[pos];
             System.out.println("Removing client thread " + ID + " at " + pos);
             if (pos < clientCount-1)
                 for (int i = pos+1; i < clientCount; i++)
@@ -147,7 +134,7 @@ public class Server implements Runnable
     {  if (clientCount < clients.length)
     {  System.out.println("Client accepted: " + socket + " ip:" + socket.getInetAddress());
 
-        clients[clientCount] = new ServerThread(this, socket);
+        clients[clientCount] = new MasterThread(this, socket);
         clients[clientCount].setIp(socket.getInetAddress());
         try
         {  clients[clientCount].open();
@@ -170,10 +157,10 @@ public class Server implements Runnable
 
 
     public static void main(String args[])
-    {  Server server = null;
+    {  Master master = null;
        // if (args.length != 1)
-        //    System.out.println("Usage: java Server port");
+        //    System.out.println("Usage: java Master port");
        // else
-            server = new Server(7777);
+            master = new Master(7777);
     }
 }

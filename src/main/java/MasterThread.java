@@ -6,8 +6,8 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 
-public class ServerThread extends Thread
-{  private Server server    = null;
+public class MasterThread extends Thread
+{  private Master master = null;
     private Socket           socket    = null;
     private int              ID        = -1;
     private DataInputStream  streamIn  =  null;
@@ -17,9 +17,9 @@ public class ServerThread extends Thread
     private String PATH2 = "C:\\Users\\dic\\ToSend\\";
     public int repeted= 0;
     private byte[] mybytearray;
-    public ServerThread(Server _server, Socket _socket)
+    public MasterThread(Master _master, Socket _socket)
     {  super();
-        server = _server;
+        master = _master;
         socket = _socket;
         ID     = socket.getPort();
     }
@@ -33,7 +33,7 @@ public class ServerThread extends Thread
         catch(IOException ioe)
         {
             System.out.println(ID + " ERROR sending: " + ioe.getMessage());
-            server.remove(ID);
+            master.remove(ID);
             stop();
         }
         finally
@@ -66,17 +66,17 @@ public class ServerThread extends Thread
 
     public void run()
     {
-        System.out.println("Server Thread " + ID + " running.");
+        System.out.println("Master Thread " + ID + " running.");
         while (true)
         {
             try
             {
-            server.handle(ID, streamIn.readUTF());
+            master.handle(ID, streamIn.readUTF());
             }
             catch(IOException ioe)
             {
                 System.out.println(ID + " ERROR reading: " + ioe.getMessage());
-                server.remove(ID);
+                master.remove(ID);
                 stop();
             }
         }
@@ -95,7 +95,7 @@ public class ServerThread extends Thread
     }
 
     public void receiveFile()
-    {   server.inUse = true;
+    {   master.inUse = true;
         try
         {
             sleep(500);
@@ -107,7 +107,7 @@ public class ServerThread extends Thread
         FileOutputStream fos = null;
         BufferedOutputStream bos = null;
         try
-        {
+        {   send("Go");
             long startTime = System.currentTimeMillis();
             BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
             DataInputStream dis = new DataInputStream(bis);
@@ -138,15 +138,8 @@ public class ServerThread extends Thread
                                        + " repeated:  " + repeted + " Time Elapsed: " + estimatedTime/1000.0 );
             if (fileSize != sizeReceived )
             System.out.println("malicious file sent");
-            /*if (imageCounter==99)
-            {
-                imageCounter = 0;
-                repeted++;
-            }
-            if (imageCounter<100)
-            {
-                send("server:" + "send");
-            }*/
+
+
         }
         catch (Exception e)
         {
@@ -165,17 +158,17 @@ public class ServerThread extends Thread
                 e.printStackTrace();
             }
         }
-        server.inUse = false;
+        master.inUse = false;
     }
 
 
-    public void sendFile(String file) {
+    public void sendFile(File myFile) {
         FileInputStream fis = null;
         BufferedInputStream bis = null;
         //OutputStream os = null;
         BufferedOutputStream bos = null;
         DataOutputStream dos;
-        String imagePath = PATH2  + file;
+
         //send("sendToClient");
         try
         {
@@ -194,8 +187,8 @@ public class ServerThread extends Thread
             System.out.println("waiting for Goooooooooooooooooooooooooooo");
            // while (!streamIn.readUTF().equals("Go")){}
             System.out.println("It shoiuld gooooo");
-                    send(file);
-            File myFile = new File(imagePath);
+                    send(myFile.getName());
+           // File myFile = new File(imagePath);
 
             mybytearray = new byte[(int) myFile.length()];
 
@@ -210,7 +203,7 @@ public class ServerThread extends Thread
                 long fileLength = myFile.length();
                 dos.writeLong(fileLength);
 
-                System.out.println("Sending " + imagePath + "(" + mybytearray.length + " bytes)");
+                System.out.println("Sending " + myFile.getCanonicalPath() + "(" + mybytearray.length + " bytes)");
                 bos.write(mybytearray, 0, mybytearray.length);
                 bos.flush();
             }
