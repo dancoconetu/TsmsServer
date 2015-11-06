@@ -13,7 +13,7 @@ public class MasterThread extends Thread
     private DataInputStream  streamIn  =  null;
     private DataOutputStream streamOut = null;
     private InetAddress           ip;
-    private String PATH = "C:\\Users\\dic\\sent\\";
+    private String PATH = "C:\\Users\\dic\\sent";
     private String PATH2 = "C:\\Users\\dic\\ToSend\\";
     public int repeted= 0;
     private byte[] mybytearray;
@@ -98,7 +98,7 @@ public class MasterThread extends Thread
     {   master.inUse = true;
         try
         {
-            sleep(500);
+            sleep(100);
         }
         catch (InterruptedException e)
         {
@@ -112,13 +112,16 @@ public class MasterThread extends Thread
             BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
             DataInputStream dis = new DataInputStream(bis);
             String imageName = dis.readUTF();
+            String imagePath = dis.readUTF();
+            File path2 =  new File(PATH + imagePath);
+            path2.mkdirs();
             String imageFound = dis.readUTF();
             System.out.println(imageFound);
             if (!imageFound.equals("ImageFound") || imageFound.equals("ImageNotFound")  )
             {
                 throw new Exception();
             }
-            String IMAGE_TO_BE_RECEIVED = PATH + imageName ;
+            String IMAGE_TO_BE_RECEIVED = path2.getCanonicalPath() + File.separator + imageName ;
             fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
             bos = new BufferedOutputStream(fos);
             long fileSize = dis.readLong();
