@@ -2,6 +2,8 @@
  * Created by dic on 18-09-2015.
  */
 
+import Common.FolderInfo;
+import Common.SystemInfo;
 import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
 
 import java.io.*;
@@ -18,7 +20,13 @@ public class Master implements Runnable
     private DataInputStream  console   = null;
     public boolean inUse= false;
     private Queue<String> queue = new LinkedList<String>();
-    private Mutex mutex = new Mutex();
+    public Mutex sendMutex = new Mutex();
+    public Mutex receiveMutex = new Mutex();
+    SystemInfo systemInfo = new SystemInfo();
+    private Mutex taskMutex = new Mutex();
+
+    private String PATH2 = "C:\\Users\\dic\\ToSend\\";
+    FolderInfo folderInfo;
 
     public Master(int port)
     {  try
@@ -33,7 +41,6 @@ public class Master implements Runnable
 
     {  new Thread(){
         public void run() {
-            int j=0;
 
             while (true) {
                 String s= null;
@@ -44,11 +51,17 @@ public class Master implements Runnable
                 }
                 //for (int k=0; k<500; j++)
                 for (int i = 0; i < clientCount; i++) {
-                    clients[i].send("server:" + s);
-                    if(s.equals("sendToClient"))
+                    clients[i].sendMessage("server:" + s);
+                    if(s.equals("sendJar"))
                     {
-                        clients[i].sendFile(new File("C:\\Users\\dic\\IdeaProjects\\Tsms-Client\\target\\tsms-client-1.0-SNAPSHOT-jar-with-dependencies.jar"));
+                        clients[i].sendFile(new File("C:\\Users\\dic\\IdeaProjects\\Tsms-Client\\target\\tsms-client-1.0-SNAPSHOT-jar-with-dependencies.jar"), folderInfo);
+
                     }
+
+                    if (s.equals("1"))
+
+                        clients[i].sendMultipleFiles(folderInfo.folderPath, folderInfo);
+
 
 
                 }
@@ -72,6 +85,8 @@ public class Master implements Runnable
     }
     public void start()
     {  console   = new DataInputStream(System.in);
+        systemInfo.setPathForHome(new File( PATH2));
+        folderInfo  = new FolderInfo(systemInfo);
         if (thread == null)
     {  thread = new Thread(this);
         BufferedReader userReader = new BufferedReader(new InputStreamReader(System.in));
@@ -95,23 +110,17 @@ public class Master implements Runnable
         String s = ID + "";
         queue.add(s);
         if (input.equals(".bye"))
-    {  clients[findClient(ID)].send(".bye");
+    {  clients[findClient(ID)].sendMessage(".bye");
         remove(ID); }
 
         if (input.length()>=10)
-        if(input.substring(0,10).equals("Sending..."))
-        {
+        if(input.substring(0,10).equals("Sending...")) {
 
             System.out.println("Trying to receive");
-            try {
-                mutex.acquire();
-                clients[findClient(ID)].receiveFile();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            finally {
-                mutex.release();
-            }
+
+            clients[findClient(ID)].receiveFile();
+
+
 
         }
     }
@@ -134,7 +143,7 @@ public class Master implements Runnable
     {  if (clientCount < clients.length)
     {  System.out.println("Client accepted: " + socket + " ip:" + socket.getInetAddress());
 
-        clients[clientCount] = new MasterThread(this, socket);
+        clients[clientCount] = new MasterThread(this, socket, sendMutex);
         clients[clientCount].setIp(socket.getInetAddress());
         try
         {  clients[clientCount].open();
