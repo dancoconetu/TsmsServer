@@ -4,11 +4,14 @@
 
 import Common.FolderInfo;
 import Common.SystemInfo;
+import XMLClasses.XMLCreator;
+import XMLClasses.XMLParser;
 import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -62,7 +65,34 @@ public class Master implements Runnable
 
                         clients[i].sendMultipleFiles(folderInfo.folderPath, folderInfo);
 
+                    if (s.equals("3"))
+                    {
+                        XMLCreator xmlCreator = new XMLCreator(folderInfo);
+                        String sendFileXml = xmlCreator.createSendFileXMLDoc(new File("C:\\Users\\dic\\ToSend\\DSDSD\\Haleluia\\Haleluia\\K-3 II\\DCIM\\100_0702\\_IMG3404.JPG"));
+                        System.out.println(sendFileXml);
+                        String sendMultipleFilesXML = xmlCreator.createSendMultipleFilesXml(folderInfo.getOnlyFiles(folderInfo.folderPath));
+                        System.out.println(sendMultipleFilesXML);
+                        String scriptXml =  xmlCreator.createScriptRunningXML(new File("C:\\Users\\dic\\ToSend\\DSDSD\\Haleluia\\Haleluia\\K-3 II\\hello.py")
+                                , "C:\\Python34\\python.exe", "py");
+                        System.out.println(scriptXml );
+                        ArrayList<String> list = new ArrayList<String>();
+                        list.add("C:\\A");
+                        list.add("C:\\B");
+                        list.add("C:\\C");
+                        list.add("C:\\D");
+                        list.add("C:\\E");
+                        list.add("C:\\F");
+                        list.add("C:\\G");
+                        list.add("C:\\H");
+                        list.add("C:\\I");
+                        System.out.println(xmlCreator.sendOsInfo(list, "testPc", "mac"));
 
+                        XMLParser xmlParser = new XMLParser();
+                        xmlParser.parseSendMultipleFiles(sendMultipleFilesXML);
+                        xmlParser.parseSendFile(sendFileXml);
+                        System.out.println(xmlParser.parseScript(scriptXml).get("ScriptVersion"));
+
+                    }
 
                 }
 
