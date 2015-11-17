@@ -4,14 +4,15 @@
 
 import Common.FolderInfo;
 import Common.SystemInfo;
-import XMLClasses.XMLCreator;
-import XMLClasses.XMLParser;
+import Common.XMLClasses.XMLCreator;
+import Common.XMLClasses.XMLParser;
 import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -54,16 +55,17 @@ public class Master implements Runnable
                 }
                 //for (int k=0; k<500; j++)
                 for (int i = 0; i < clientCount; i++) {
-                    clients[i].sendMessage("server:" + s);
+                    //clients[i].sendMessage("server:" + s);
                     if(s.equals("sendJar"))
-                    {
+                    {   File temp = folderInfo.folderPath;
+                        folderInfo.folderPath = new File("C:\\Users\\dic\\IdeaProjects\\Tsms-Client\\target\\");
                         clients[i].sendFile(new File("C:\\Users\\dic\\IdeaProjects\\Tsms-Client\\target\\tsms-client-1.0-SNAPSHOT-jar-with-dependencies.jar"), folderInfo);
-
+                        folderInfo.folderPath = temp;
                     }
 
                     if (s.equals("1"))
 
-                        clients[i].sendMultipleFiles(folderInfo.folderPath, folderInfo);
+                        clients[i].sendMissingFiles(folderInfo.folderPath, folderInfo);
 
                     if (s.equals("3"))
                     {
@@ -74,7 +76,7 @@ public class Master implements Runnable
                         System.out.println(sendMultipleFilesXML);
                         String scriptXml =  xmlCreator.createScriptRunningXML(new File("C:\\Users\\dic\\ToSend\\DSDSD\\Haleluia\\Haleluia\\K-3 II\\hello.py")
                                 , "C:\\Python34\\python.exe", "py");
-                        System.out.println(scriptXml );
+                        System.out.println(scriptXml);
                         ArrayList<String> list = new ArrayList<String>();
                         list.add("C:\\A");
                         list.add("C:\\B");
@@ -85,12 +87,24 @@ public class Master implements Runnable
                         list.add("C:\\G");
                         list.add("C:\\H");
                         list.add("C:\\I");
-                        System.out.println(xmlCreator.sendOsInfo(list, "testPc", "mac"));
+                        String osInfoXml = xmlCreator.sendOsInfo(list, "testPc", "mac");
+                        System.out.println(osInfoXml);
 
                         XMLParser xmlParser = new XMLParser();
                         xmlParser.parseSendMultipleFiles(sendMultipleFilesXML);
                         xmlParser.parseSendFile(sendFileXml);
                         System.out.println(xmlParser.parseScript(scriptXml).get("ScriptVersion"));
+                        Hashtable hashtable = xmlParser.parseOsInfo(osInfoXml);
+                        System.out.println("OsName:" + hashtable.get("OsName"));
+                        System.out.println("PcName:" + hashtable.get("PcName"));
+                        String[] scriptLanguages = (String[])hashtable.get("ScriptLanguages");
+                        System.out.println("Script lagnuages size: " + scriptLanguages.length);
+                        for (int j=0; j< scriptLanguages.length; j++)
+                        {
+                            System.out.println("language: " + scriptLanguages[i]);
+                        }
+
+
 
                     }
 
@@ -136,7 +150,8 @@ public class Master implements Runnable
         return -1;
     }
     public synchronized void handle(int ID, String input)
-    {   System.out.println("Input + " + ID + ":  " + input);
+    {    XMLParser xmlParser = new XMLParser();
+        System.out.println("Input + " + ID + ":  " + input);
         String s = ID + "";
         queue.add(s);
         if (input.equals(".bye"))
@@ -144,14 +159,20 @@ public class Master implements Runnable
         remove(ID); }
 
         if (input.length()>=10)
-        if(input.substring(0,10).equals("Sending...")) {
+        if(input.contains("<SendFile")) {
 
             System.out.println("Trying to receive");
+            Hashtable hashtable = xmlParser.parseSendFile(input);
+            clients[findClient(ID)].receiveFile(hashtable.get("FileName").toString(), hashtable.get("FilePath").toString(), Long.parseLong(hashtable.get("FileSize").toString()));
 
-            clients[findClient(ID)].receiveFile();
 
 
 
+        }
+        if(input.contains("<SendMultipleFiles")) {
+
+
+            clients[findClient(ID)].sendMultipleFilesFromList(xmlParser.parseSendMultipleFiles(input));
         }
     }
     public synchronized void remove(int ID)
@@ -173,7 +194,7 @@ public class Master implements Runnable
     {  if (clientCount < clients.length)
     {  System.out.println("Client accepted: " + socket + " ip:" + socket.getInetAddress());
 
-        clients[clientCount] = new MasterThread(this, socket, sendMutex);
+        clients[clientCount] = new MasterThread(this, socket, sendMutex,folderInfo);
         clients[clientCount].setIp(socket.getInetAddress());
         try
         {  clients[clientCount].open();

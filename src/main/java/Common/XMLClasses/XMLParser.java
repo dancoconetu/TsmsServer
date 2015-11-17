@@ -1,4 +1,4 @@
-package XMLClasses;
+package Common.XMLClasses;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -108,9 +108,53 @@ public class XMLParser {
         hashtable.put("FilePath", filePath);
         hashtable.put("ResultExtension", resultExtension);
         hashtable.put("ScriptVersion", scriptVersion);
-        System.out.println(root.getNodeName() +   "   :  " + scriptName +   "   :  " + filePath  +   "   :  " + resultExtension  +   "   :  " + scriptVersion );
+        System.out.println(root.getNodeName() + "   :  " + scriptName + "   :  " + filePath + "   :  " + resultExtension + "   :  " + scriptVersion);
 
 
         return hashtable;
     }
+
+    public Hashtable parseOsInfo(String xmlString)
+    {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder;
+        Document document = null;
+        try
+        {
+            builder = factory.newDocumentBuilder();
+            document = builder.parse(new InputSource(new StringReader(xmlString)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        document.getDocumentElement().normalize();
+        Element root =  document.getDocumentElement();
+        String PcName= root.getAttribute("PcName") ;
+        String OsName = root.getAttribute("OsName");
+        String resultExtension = root.getAttribute("ResultExtension");
+        String scriptVersion = root.getAttribute("ScriptVersion");
+        Hashtable hashtable = new Hashtable();
+        hashtable.put("PcName", PcName);
+        hashtable.put("OsName", OsName);
+
+        NodeList nodeList = document.getElementsByTagName("ScriptLanguage");
+        String[] list = new String[nodeList.getLength()];
+        for (int temp = 0; temp < nodeList.getLength(); temp++) {
+
+            Node nNode = nodeList.item(temp);
+            if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+
+                Element eElement = (Element) nNode;
+                String Location = eElement.getAttribute("Location");
+                list[temp] = Location;
+                //list[]
+            }
+        }
+
+        System.out.println("Size before putting it in hashtable: " + list.length);
+        hashtable.put("ScriptLanguages", list);
+
+        return hashtable;
+    }
+
+
 }

@@ -3,11 +3,13 @@
  */
 
 import Common.FolderInfo;
+import Common.XMLClasses.XMLCreator;
 import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class MasterThread extends Thread
 {  private Master master = null;
@@ -18,20 +20,22 @@ public class MasterThread extends Thread
     private InetAddress           ip;
     private String PATH = "C:\\Users\\dic\\sent";
     private Mutex mutex;
+    private FolderInfo folderInfo;
 
     public int repeted= 0;
     private byte[] mybytearray;
-    public MasterThread(Master _master, Socket _socket, Mutex _mutex)
+    public MasterThread(Master _master, Socket _socket, Mutex _mutex, FolderInfo _folderInfo)
     {  super();
         master = _master;
         socket = _socket;
         ID     = socket.getPort();
         mutex = _mutex;
+        folderInfo = _folderInfo;
     }
     public void sendMessage(String _msg) {
         final String msg = _msg;
-        Thread t1 = new Thread(new Runnable() {
-            public void run() {
+        //Thread t1 = new Thread(new Runnable() {
+           // public void run() {
                 try
 
                 {   System.out.println("Aquiring in SENDMESSAGE");
@@ -53,9 +57,9 @@ public class MasterThread extends Thread
                     }
                 }
             }
-        });
-        t1.start();
-    }
+       // });
+       // t1.start();
+    //}
 
     public void sendMessageWithoutMutex(String message)
     {
@@ -112,7 +116,7 @@ public class MasterThread extends Thread
         if (streamOut != null) streamOut.close();
     }
 
-    public void receiveFile()
+    public void receiveFile(String imageName, String imagePath, long fileSize)
     {
 
         try
@@ -129,27 +133,28 @@ public class MasterThread extends Thread
         FileOutputStream fos = null;
         BufferedOutputStream bos = null;
         long sizeReceived = 0;
-         long fileSize = 0;
+        // long fileSize = 0;
         String IMAGE_TO_BE_RECEIVED="";
         try
         {   //sendMessage("Go");
             long startTime = System.currentTimeMillis();
             BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
             DataInputStream dis = new DataInputStream(bis);
-            String imageName = dis.readUTF();
-            String imagePath = dis.readUTF();
+          //  String imageName = dis.readUTF();
+          //  String imagePath = dis.readUTF();
+            imagePath = imagePath.replace("\\", File.separator);
             File path2 =  new File(PATH + imagePath);
             path2.mkdirs();
-            String imageFound = dis.readUTF();
-            System.out.println(imageFound);
-            if (!imageFound.equals("ImageFound") || imageFound.equals("ImageNotFound")  )
-            {
-                throw new Exception();
-            }
+            //String imageFound = dis.readUTF();
+//            System.out.println(imageFound);
+//            if (!imageFound.equals("ImageFound") || imageFound.equals("ImageNotFound")  )
+//            {
+//                throw new Exception();
+//            }
             IMAGE_TO_BE_RECEIVED = path2.getCanonicalPath() + File.separator + imageName ;
             fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
             bos = new BufferedOutputStream(fos);
-            fileSize = dis.readLong();
+           // fileSize = dis.readLong();
             System.out.println("File size: " + fileSize);
 
             int bytesRead = 8192;
@@ -198,6 +203,35 @@ public class MasterThread extends Thread
         master.inUse = false;
     }
 
+    public void sendMissingFiles(File folder, FolderInfo folderInfo)
+    {
+        ArrayList<File> allFilesInSubFolders= new ArrayList<File>();
+        folderInfo.listf(folderInfo.folderPath.toString(), allFilesInSubFolders);
+
+//        for (File f : allFilesInSubFolders)
+//        {
+//            System.out.println("FileName: " + f.getAbsolutePath().toString());
+//        }
+
+        XMLCreator xmlCreator = new XMLCreator(folderInfo);
+        String xmlFiles = xmlCreator.createSendMultipleFilesXml(allFilesInSubFolders);
+        sendMessage(xmlFiles);
+
+
+    }
+
+    public void sendMultipleFilesFromList(String[][] list)
+    {
+        for (String[] row: list)
+        {
+            File path2 =  new File(folderInfo.folderPath + row[2]);
+            System.out.println("path2: " + path2);
+            File file = new File(path2.getAbsolutePath() + File.separator + row[0]);
+            System.out.println("file: " + file.getAbsolutePath());
+            if (file.exists())
+                sendFile(file,folderInfo);
+        }
+    }
 
     public void sendMultipleFiles(File folder, FolderInfo folderInfo)
     {
@@ -220,6 +254,11 @@ public class MasterThread extends Thread
 
     public void sendFile(File myFile, FolderInfo folderInfo) {
 
+        XMLCreator xmlCreator = new XMLCreator(folderInfo);
+        String fileXml = xmlCreator.createSendFileXMLDoc(myFile);
+        sendMessage(fileXml);
+        System.out.println(fileXml);
+
         try {
             System.out.println("Try to acquire sendMutex send");
             mutex.acquire();
@@ -227,12 +266,15 @@ public class MasterThread extends Thread
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+
+
         FileInputStream fis = null;
         BufferedInputStream bis = null;
         //OutputStream os = null;
         BufferedOutputStream bos = null;
         DataOutputStream dos;
-        sendMessageWithoutMutex("server:sendToClient");
+        //sendMessageWithoutMutex("server:sendToClient");
 
         try
         {
@@ -252,18 +294,18 @@ public class MasterThread extends Thread
             //while (!streamIn.readUTF().equals("Go")){}
             if (myFile.length()> 150502457)
                 throw new FileNotFoundException();
-            sendMessageWithoutMutex(myFile.getName()); //sending file name
-            sendMessageWithoutMutex(myFile.getParentFile().getAbsolutePath().substring(folderInfo.folderPath.getAbsolutePath().length()));
+           // sendMessageWithoutMutex(myFile.getName()); //sending file name
+            //sendMessageWithoutMutex(myFile.getParentFile().getAbsolutePath().substring(folderInfo.folderPath.getAbsolutePath().length()));
 
             mybytearray = new byte[(int) myFile.length()];
             fis = new FileInputStream(myFile);
             bis = new BufferedInputStream(fis);
 
             bis.read(mybytearray, 0, mybytearray.length);
-            sendMessageWithoutMutex("ImageFound");
+            //sendMessageWithoutMutex("ImageFound");
 
-            long fileLength = myFile.length();
-            dos.writeLong(fileLength);
+            //long fileLength = myFile.length();
+            //dos.writeLong(fileLength);
 
             bos.write(mybytearray, 0, mybytearray.length);
             bos.flush();
@@ -277,7 +319,7 @@ public class MasterThread extends Thread
         {
             e.printStackTrace();
             System.out.println("File not found!");
-            sendMessageWithoutMutex("ImageNotFound");
+            //sendMessageWithoutMutex("ImageNotFound");
 
         }
         catch (Exception e)
@@ -290,13 +332,14 @@ public class MasterThread extends Thread
             sleepTime();
 
             //sendMessage("succesfully sent");
-//             try {
-//                 if (bis != null) bis.close();
-//
-//
-//             } catch (IOException e) {
-//                e.printStackTrace();
-//            }
+         try {
+            if (bis != null) bis.close();
+            if (fis != null) fis.close();
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         }
 
