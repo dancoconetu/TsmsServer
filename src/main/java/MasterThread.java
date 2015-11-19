@@ -21,16 +21,20 @@ public class MasterThread extends Thread
     private String PATH = "C:\\Users\\dic\\sent";
     private Mutex mutex;
     private FolderInfo folderInfo;
-
+    private Socket socketFileReceive;
+    private Socket socketFileSend;
+    private int filesCount;
     public int repeted= 0;
     private byte[] mybytearray;
-    public MasterThread(Master _master, Socket _socket, Mutex _mutex, FolderInfo _folderInfo)
+    public MasterThread(Master _master, Socket _socket, Socket _socketFileReceive, Socket _socketFileSend, Mutex _mutex, FolderInfo _folderInfo)
     {  super();
         master = _master;
         socket = _socket;
         ID     = socket.getPort();
         mutex = _mutex;
         folderInfo = _folderInfo;
+        socketFileReceive = _socketFileReceive;
+        socketFileSend = _socketFileSend;
     }
     public void sendMessage(String _msg) {
         final String msg = _msg;
@@ -38,10 +42,10 @@ public class MasterThread extends Thread
            // public void run() {
                 try
 
-                {   System.out.println("Aquiring in SENDMESSAGE");
+                {  // System.out.println("Aquiring in SENDMESSAGE");
                     mutex.acquire();
                     streamOut.writeUTF(msg);
-                    System.out.println("ACQUIRED in SENDMESSAGE");
+                  //  System.out.println("ACQUIRED in SENDMESSAGE");
                     mutex.release();
                 } catch (IOException ioe) {
                     System.out.println(ID + " ERROR sending: " + ioe.getMessage());
@@ -93,12 +97,20 @@ public class MasterThread extends Thread
         {
             try
             {
-            master.handle(ID, streamIn.readUTF());
+
+
+               // while(master.inUse);
+                String s = streamIn.readUTF();
+
+                master.handle(ID, s );
+
+
             }
             catch(IOException ioe)
             {
+                ioe.printStackTrace();
                 System.out.println(ID + " ERROR reading: " + ioe.getMessage());
-                master.remove(ID);
+               master.remove(ID);
                 stop();
             }
         }
@@ -118,18 +130,17 @@ public class MasterThread extends Thread
 
     public void receiveFile(String imageName, String imagePath, long fileSize)
     {
-
-        try
-        {   System.out.println("Try to acquire sendMutex receive");
-            master.receiveMutex.acquire();
-            //mutex.acquire();
-            System.out.println("Mutex acquired");
-            sleep(100);
-        }
-        catch (InterruptedException e)
-        {
+//        try {
+//            master.receiveMutex.acquire();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+        try {
+            new DataOutputStream(socketFileReceive.getOutputStream()).writeUTF(imageName);
+        } catch (IOException e) {
             e.printStackTrace();
         }
+        master.inUse = true;
         FileOutputStream fos = null;
         BufferedOutputStream bos = null;
         long sizeReceived = 0;
@@ -138,7 +149,7 @@ public class MasterThread extends Thread
         try
         {   //sendMessage("Go");
             long startTime = System.currentTimeMillis();
-            BufferedInputStream bis = new BufferedInputStream(socket.getInputStream());
+            BufferedInputStream bis = new BufferedInputStream(socketFileReceive.getInputStream());
             DataInputStream dis = new DataInputStream(bis);
           //  String imageName = dis.readUTF();
           //  String imagePath = dis.readUTF();
@@ -151,11 +162,12 @@ public class MasterThread extends Thread
 //            {
 //                throw new Exception();
 //            }
+            sleepTime();
             IMAGE_TO_BE_RECEIVED = path2.getCanonicalPath() + File.separator + imageName ;
             fos = new FileOutputStream(IMAGE_TO_BE_RECEIVED);
             bos = new BufferedOutputStream(fos);
            // fileSize = dis.readLong();
-            System.out.println("File size: " + fileSize);
+            //System.out.println("File size: " + fileSize);
 
             int bytesRead = 8192;
             byte[] buffer = new byte[bytesRead];
@@ -185,10 +197,12 @@ public class MasterThread extends Thread
                 if (bos != null) bos.close();
                 if (fos != null) fos.close();
                 if (fileSize != sizeReceived ) {
-                    System.out.println("malicious file sent");
+                    System.out.println("\n\n\n\n-----------------------malicious file sent: + " +  IMAGE_TO_BE_RECEIVED +  ": Ip: " + ip + "-------------------------\n\n\n\n");
                     new File(IMAGE_TO_BE_RECEIVED).delete();
 
                 }
+
+
 
 
 
@@ -199,7 +213,8 @@ public class MasterThread extends Thread
             }
         }
         master.receiveMutex.release();
-        System.out.println("Mutex released Receive");
+       // System.out.println("Mutex released Receive");
+
         master.inUse = false;
     }
 
@@ -278,7 +293,7 @@ public class MasterThread extends Thread
 
         try
         {
-            bos = new BufferedOutputStream(socket.getOutputStream());
+            bos = new BufferedOutputStream(socketFileSend.getOutputStream());
         }
         catch (IOException e)
         {
@@ -290,7 +305,7 @@ public class MasterThread extends Thread
         try
         {   System.out.println("Sending " + myFile.getCanonicalPath() + "(" + myFile.length() + " bytes)");
 
-            DataInputStream streamIn  = new DataInputStream(socket.getInputStream());
+            //DataInputStream streamIn  = new DataInputStream(socket.getInputStream());
             //while (!streamIn.readUTF().equals("Go")){}
             if (myFile.length()> 150502457)
                 throw new FileNotFoundException();

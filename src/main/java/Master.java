@@ -16,6 +16,8 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import static java.lang.Thread.sleep;
+
 public class Master implements Runnable
 {  private MasterThread clients[] = new MasterThread[50];
     private ServerSocket server = null;
@@ -116,7 +118,11 @@ public class Master implements Runnable
         while (thread != null)
     {  try
     {  System.out.println("Waiting for a client ...");
-        addThread(server.accept()); }
+        Socket firstSocket = server.accept();
+        Socket secondSocket = server.accept();
+        Socket thirdSocket = server.accept();
+
+        addThread(firstSocket,secondSocket, thirdSocket); }
 
     catch(IOException ioe)
     {  System.out.println("Master accept error: " + ioe); stop(); }
@@ -150,8 +156,14 @@ public class Master implements Runnable
         return -1;
     }
     public synchronized void handle(int ID, String input)
-    {    XMLParser xmlParser = new XMLParser();
-        System.out.println("Input + " + ID + ":  " + input);
+    {
+        try {
+            taskMutex.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        XMLParser xmlParser = new XMLParser();
+        System.out.println( clients[findClient(ID)].getIp() + ":  " + input);
         String s = ID + "";
         queue.add(s);
         if (input.equals(".bye"))
@@ -163,6 +175,17 @@ public class Master implements Runnable
 
             System.out.println("Trying to receive");
             Hashtable hashtable = xmlParser.parseSendFile(input);
+            try
+            {
+            System.out.println("Try to acquire sendMutex receive");
+                receiveMutex.acquire();
+                System.out.println("Mutex acquired");
+                sleep(100);
+            }
+            catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
             clients[findClient(ID)].receiveFile(hashtable.get("FileName").toString(), hashtable.get("FilePath").toString(), Long.parseLong(hashtable.get("FileSize").toString()));
 
 
@@ -174,6 +197,8 @@ public class Master implements Runnable
 
             clients[findClient(ID)].sendMultipleFilesFromList(xmlParser.parseSendMultipleFiles(input));
         }
+
+        taskMutex.release();
     }
     public synchronized void remove(int ID)
     {  int pos = findClient(ID);
@@ -190,11 +215,20 @@ public class Master implements Runnable
             {  System.out.println("Error closing thread: " + ioe); }
             toTerminate.stop(); }
     }
-    private void addThread(Socket socket)
+    private void addThread(Socket socket, Socket socketFileReceive, Socket socketFileSend)
     {  if (clientCount < clients.length)
     {  System.out.println("Client accepted: " + socket + " ip:" + socket.getInetAddress());
+        String typeOfSocket = "";
+        try {
+            System.out.println(typeOfSocket = new DataInputStream(socket.getInputStream()).readUTF());
+            System.out.println("This should be socketFileReceive = " + new DataInputStream(socketFileReceive.getInputStream()).readUTF());
+            System.out.println("This should be socketFileSend = " + new DataInputStream(socketFileSend.getInputStream()).readUTF());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        clients[clientCount] = new MasterThread(this, socket, sendMutex,folderInfo);
+
+        clients[clientCount] = new MasterThread(this, socket, socketFileReceive, socketFileSend , sendMutex,folderInfo);
         clients[clientCount].setIp(socket.getInetAddress());
         try
         {  clients[clientCount].open();
