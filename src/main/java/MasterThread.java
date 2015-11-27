@@ -213,7 +213,7 @@ public class MasterThread extends Thread
             }
         }
         master.receiveMutex.release();
-       // System.out.println("Mutex released Receive");
+
 
         master.inUse = false;
     }
